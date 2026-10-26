@@ -1,0 +1,21 @@
+# Зависимости
+node_modules/
+venv/
+__pycache__/
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+
+# Настройки редакторов (VS Code, WebStorm и др.)
+.vscode/
+.idea/
+
+# Файлы с локальными переменными и секретами
+.env
+.env.local
+
+# Логи и папки со сборками
+dist/
+build/
+*.log
