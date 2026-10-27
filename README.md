@@ -8,20 +8,51 @@
 
 ---
 
+## Запуск клиента (ЛР3 — Vue 3 + Vite)
+
+Выполните из корня репозитория:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Открыть адрес Vite, обычно http://localhost:5173
+
+На экране доступны три переключаемых режима:
+1. **Список поручений** — таблица `<table>` с тестовыми записями `Assignment` (`id`, `number`, `title`, `departmentId`, `status`).
+2. **Создание поручения** — семантическая форма `<form>` с полями `title`, `departmentId`, `description` и связанными `<label>`.
+3. **Вход** — семантическая форма `<form>` с полями `login` и `password`.
+
+---
+
 ## Дерево файлов репозитория
 
 ```text
 RIS_Web/
-├── README.md
-└── docs/
-    ├── project-proposal.md         ← Заявка на тему (ЛР1)
-    ├── lab-01-requirements.md      ← Требования и критерии приёмки (ЛР1)
-    ├── architecture.md             ← Схема из трёх узлов (ЛР2)
-    ├── data-model.md               ← ER-диаграмма, ключи и проверка 3НФ (ЛР2)
-    ├── api-contract.md             ← Таблица API и примеры JSON (ЛР2)
-    ├── requirements-matrix.md      ← Матрица: критерий → поле → запрос (ЛР2)
-    └── reports/
-        └── lab-02.md               ← Отчёт по ЛР2 и ответы к защите
+├── README.md                     ← описание проекта и команды запуска клиента
+├── .gitignore                    ← исключения Git (node_modules/, dist/, .DS_Store)
+├── docs/
+│   ├── project-proposal.md       ← заявка на тему (ЛР1)
+│   ├── lab-01-requirements.md    ← требования и критерии приёмки (ЛР1)
+│   ├── architecture.md           ← схема из трёх узлов (ЛР2)
+│   ├── data-model.md             ← ER-диаграмма, ключи и проверка 3НФ (ЛР2)
+│   ├── api-contract.md           ← таблица API и примеры JSON (ЛР2)
+│   ├── requirements-matrix.md    ← матрица: критерий → поле → запрос (ЛР2)
+│   └── reports/
+│       ├── lab-02.md             ← отчёт по ЛР2
+│       └── lab-03.md             ← отчёт по ЛР3
+└── frontend/
+    ├── package.json
+    ├── package-lock.json
+    ├── index.html
+    ├── vite.config.js
+    ├── src/
+    │   ├── main.js
+    │   ├── App.vue
+    │   └── assets/
+    └── public/
 ```
 
 ---
@@ -39,11 +70,5 @@ RIS_Web/
 - [Матрица требований (`docs/requirements-matrix.md`)](docs/requirements-matrix.md)
 - [Отчёт по лабораторной работе №2 (`docs/reports/lab-02.md`)](docs/reports/lab-02.md)
 
----
-
-## Архитектура и воспроизводимый запуск (контур семестра)
-
-Система строится по трёхузловой архитектуре (подробнее в [docs/architecture.md](docs/architecture.md)):
-1. **Клиент (`Vue 3 + Vite`, порт `5173`)** — отрисовывает интерфейс и отправляет HTTP-запросы к API.
-2. **Сервер (`ASP.NET Core Web API`, порт `5000`)** — проверяет права ролей (`Manager`, `Executor`, `Viewer`), валидирует данные и обращается к БД.
-3. **База данных (`PostgreSQL`, порт `5432`)** — хранит таблицы `Departments`, `Users` и `Assignments`.
+### Лабораторная работа №3 — Vue 3: каркас и три экрана
+- [Отчёт по лабораторной работе №3 (`docs/reports/lab-03.md`)](docs/reports/lab-03.md)
