@@ -8,7 +8,7 @@
 
 ---
 
-## Запуск клиента (ЛР3 — Vue 3 + Vite)
+## Запуск клиента (ЛР3–ЛР4 — Vue 3 + Vite + Vue Router)
 
 Выполните из корня репозитория:
 
@@ -20,10 +20,10 @@ npm run dev
 
 Открыть адрес Vite, обычно http://localhost:5173
 
-На экране доступны три переключаемых режима:
-1. **Список поручений** — таблица `<table>` с тестовыми записями `Assignment` (`id`, `number`, `title`, `departmentId`, `status`).
-2. **Создание поручения** — семантическая форма `<form>` с полями `title`, `departmentId`, `description` и связанными `<label>`.
-3. **Вход** — семантическая форма `<form>` с полями `login` и `password`.
+### Доступные маршруты клиента (ЛР4):
+- `http://localhost:5173/` — страница списка поручений (`TicketList.vue` + таблица `TicketTable.vue`, получающая данные через `props` из `ticketsStore.js`).
+- `http://localhost:5173/new` — страница создания поручения (`TicketNew.vue`).
+- `http://localhost:5173/login` — страница входа в систему (`Login.vue`).
 
 ---
 
@@ -42,17 +42,25 @@ RIS_Web/
 │   ├── requirements-matrix.md    ← матрица: критерий → поле → запрос (ЛР2)
 │   └── reports/
 │       ├── lab-02.md             ← отчёт по ЛР2
-│       └── lab-03.md             ← отчёт по ЛР3
+│       ├── lab-03.md             ← отчёт по ЛР3
+│       └── lab-04.md             ← отчёт по ЛР4
 └── frontend/
-    ├── package.json
+    ├── package.json              ← зависимости (vue, vue-router)
     ├── package-lock.json
     ├── index.html
     ├── vite.config.js
-    ├── src/
-    │   ├── main.js
-    │   ├── App.vue
-    │   └── assets/
-    └── public/
+    └── src/
+        ├── main.js               ← точка входа и подключение router
+        ├── App.vue               ← AppHeader + router-view
+        ├── router.js             ← три маршрута (/, /new, /login)
+        ├── ticketsStore.js       ← единственный общий массив items
+        ├── components/
+        │   ├── AppHeader.vue
+        │   └── TicketTable.vue
+        └── pages/
+            ├── TicketList.vue
+            ├── TicketNew.vue
+            └── Login.vue
 ```
 
 ---
@@ -72,3 +80,6 @@ RIS_Web/
 
 ### Лабораторная работа №3 — Vue 3: каркас и три экрана
 - [Отчёт по лабораторной работе №3 (`docs/reports/lab-03.md`)](docs/reports/lab-03.md)
+
+### Лабораторная работа №4 — Vue 3: компоненты и маршруты
+- [Отчёт по лабораторной работе №4 (`docs/reports/lab-04.md`)](docs/reports/lab-04.md)
