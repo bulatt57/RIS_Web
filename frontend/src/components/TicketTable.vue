@@ -1,6 +1,4 @@
 <script setup>
-import { departments } from '../ticketsStore.js'
-
 defineProps({
   items: {
     type: Array,
@@ -17,6 +15,7 @@ defineProps({
         <th scope="col">Номер (number)</th>
         <th scope="col">Тема поручения (title)</th>
         <th scope="col">Подразделение (departmentId)</th>
+        <th scope="col">Описание (description)</th>
         <th scope="col">Статус (status)</th>
       </tr>
     </thead>
@@ -25,10 +24,8 @@ defineProps({
         <td>{{ item.id }}</td>
         <td class="mono">{{ item.number }}</td>
         <td>{{ item.title }}</td>
-        <td>
-          {{ item.departmentId }}
-          <span class="dept-name">({{ departments[item.departmentId] || 'Отдел ЕЦУиМС' }})</span>
-        </td>
+        <td>{{ item.departmentId }}</td>
+        <td>{{ item.description }}</td>
         <td>
           <span class="status-badge" :data-status="item.status">
             {{ item.status }}
@@ -63,11 +60,6 @@ defineProps({
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 600;
-}
-
-.dept-name {
-  color: #6b7280;
-  font-size: 0.88rem;
 }
 
 .status-badge {
