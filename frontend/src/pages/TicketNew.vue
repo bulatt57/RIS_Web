@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { addItem } from '../ticketsStore.js'
+import { createTicket } from '../api/tickets.js'
+import { addCreatedItem } from '../ticketsStore.js'
 
 const router = useRouter()
 const titleInput = ref(null)
@@ -18,11 +19,16 @@ const errors = ref({
   description: ''
 })
 
+const apiError = ref('')
+const isSubmitting = ref(false)
+
 onMounted(() => {
   titleInput.value?.focus()
 })
 
-function onCreate() {
+async function onCreate() {
+  if (isSubmitting.value) return
+
   const cleanTitle = form.value.title.trim()
   const deptId = form.value.departmentId
   const cleanDescription = form.value.description.trim()
@@ -32,6 +38,7 @@ function onCreate() {
     departmentId: '',
     description: ''
   }
+  apiError.value = ''
 
   if (cleanTitle.length < 5 || cleanTitle.length > 80) {
     errors.value.title = 'Тема: от 5 до 80 символов'
@@ -45,29 +52,34 @@ function onCreate() {
     errors.value.description = 'Описание: от 10 до 500 символов'
   }
 
-  if (errors.value.title || errors.value.departmentId || errors.value.description) {
-    return
+  isSubmitting.value = true
+
+  try {
+    const created = await createTicket({
+      title: cleanTitle,
+      departmentId: deptId,
+      description: cleanDescription
+    })
+
+    addCreatedItem(created)
+
+    errors.value = {
+      title: '',
+      departmentId: '',
+      description: ''
+    }
+    form.value = {
+      title: '',
+      departmentId: 1,
+      description: ''
+    }
+
+    router.push('/')
+  } catch (err) {
+    apiError.value = err?.message || 'Нет связи с сервером'
+  } finally {
+    isSubmitting.value = false
   }
-
-  addItem({
-    title: cleanTitle,
-    departmentId: deptId,
-    description: cleanDescription
-  })
-
-  errors.value = {
-    title: '',
-    departmentId: '',
-    description: ''
-  }
-
-  form.value = {
-    title: '',
-    departmentId: 1,
-    description: ''
-  }
-
-  router.push('/')
 }
 </script>
 
@@ -75,10 +87,15 @@ function onCreate() {
   <section aria-labelledby="new-heading">
     <h2 id="new-heading">Создание поручения</h2>
     <p class="section-hint">
-      Запись сохраняется в общий массив <code>ticketsStore.js</code> со статусом <code>New</code>.
+      Отправка выполняется через <code>createTicket()</code> из <code>src/api/tickets.js</code>.
+      Поля <code>id</code>, <code>number</code> и <code>status</code> приходят из ответа.
     </p>
 
     <form class="card-form" novalidate @submit.prevent="onCreate">
+      <div v-if="apiError" class="api-error-banner" role="alert">
+        {{ apiError }}
+      </div>
+
       <div class="form-group">
         <label for="title">Тема поручения (title, 5–80 символов)</label>
         <input
@@ -87,6 +104,7 @@ function onCreate() {
           v-model="form.title"
           name="title"
           type="text"
+          :disabled="isSubmitting"
           placeholder="Например: Проверить оптическую линию на узле доступа"
           autofocus
         />
@@ -102,6 +120,7 @@ function onCreate() {
           v-model.number="form.departmentId"
           name="departmentId"
           type="number"
+          :disabled="isSubmitting"
           placeholder="1"
         />
         <small class="field-help">
@@ -119,6 +138,7 @@ function onCreate() {
           v-model="form.description"
           name="description"
           rows="4"
+          :disabled="isSubmitting"
           placeholder="Подробно опишите задачу, участок сети и ожидаемый результат"
         ></textarea>
         <p v-if="errors.description" class="field-error" role="alert">
@@ -126,7 +146,9 @@ function onCreate() {
         </p>
       </div>
 
-      <button type="submit" class="primary-btn">Создать</button>
+      <button type="submit" class="primary-btn" :disabled="isSubmitting">
+        {{ isSubmitting ? 'Создаём…' : 'Создать' }}
+      </button>
     </form>
   </section>
 </template>
@@ -152,6 +174,17 @@ h2 {
   border-radius: 8px;
 }
 
+.api-error-banner {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #f87171;
+  background-color: #fef2f2;
+  color: #991b1b;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -174,6 +207,12 @@ h2 {
   background-color: #ffffff;
   border: 1px solid #9ca3af;
   border-radius: 6px;
+}
+
+.form-group input:disabled,
+.form-group textarea:disabled {
+  background-color: #f3f4f6;
+  color: #6b7280;
 }
 
 .form-group input:focus,
@@ -206,7 +245,12 @@ h2 {
   cursor: pointer;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
   background-color: #1d4ed8;
+}
+
+.primary-btn:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
 }
 </style>

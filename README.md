@@ -8,22 +8,18 @@
 
 ---
 
-## Запуск клиента (ЛР3–ЛР4 — Vue 3 + Vite + Vue Router)
+## Запуск клиента (ЛР3–ЛР6 — Vue 3 + Vite + Vue Router + API/Mock)
 
 Выполните из корня репозитория:
 
 ```bash
 cd frontend
+cp -n .env.example .env
 npm install
 npm run dev
 ```
 
 Открыть адрес Vite, обычно http://localhost:5173
-
-### Доступные маршруты клиента (ЛР4):
-- `http://localhost:5173/` — страница списка поручений (`TicketList.vue` + таблица `TicketTable.vue`, получающая данные через `props` из `ticketsStore.js`).
-- `http://localhost:5173/new` — страница создания поручения (`TicketNew.vue`).
-- `http://localhost:5173/login` — страница входа в систему (`Login.vue`).
 
 ---
 
@@ -32,7 +28,7 @@ npm run dev
 ```text
 RIS_Web/
 ├── README.md                     ← описание проекта и команды запуска клиента
-├── .gitignore                    ← исключения Git (node_modules/, dist/, .DS_Store)
+├── .gitignore                    ← исключения Git (node_modules/, dist/, .env, но не .env.example)
 ├── docs/
 │   ├── project-proposal.md       ← заявка на тему (ЛР1)
 │   ├── lab-01-requirements.md    ← требования и критерии приёмки (ЛР1)
@@ -43,8 +39,11 @@ RIS_Web/
 │   └── reports/
 │       ├── lab-02.md             ← отчёт по ЛР2
 │       ├── lab-03.md             ← отчёт по ЛР3
-│       └── lab-04.md             ← отчёт по ЛР4
+│       ├── lab-04.md             ← отчёт по ЛР4
+│       ├── lab-05.md             ← отчёт по ЛР5
+│       └── lab-06.md             ← отчёт по ЛР6 (клиент API, mock и состояния UI)
 └── frontend/
+    ├── .env.example              ← шаблон переменных окружения (VITE_API_BASE_URL=http://localhost:5000)
     ├── package.json              ← зависимости (vue, vue-router)
     ├── package-lock.json
     ├── index.html
@@ -53,33 +52,15 @@ RIS_Web/
         ├── main.js               ← точка входа и подключение router
         ├── App.vue               ← AppHeader + router-view
         ├── router.js             ← три маршрута (/, /new, /login)
-        ├── ticketsStore.js       ← единственный общий массив items
+        ├── ticketsStore.js       ← общее состояние списка
+        ├── api/
+        │   ├── tickets.js        ← getTickets, createTicket, переключатель USE_MOCK и fetch
+        │   └── mockTickets.js    ← задержка 500 мс и учебные ответы (200, 201, 400, force500)
         ├── components/
         │   ├── AppHeader.vue
         │   └── TicketTable.vue
         └── pages/
-            ├── TicketList.vue
-            ├── TicketNew.vue
+            ├── TicketList.vue    ← четыре состояния: loading / empty / data / error
+            ├── TicketNew.vue     ← отправка через createTicket, блокировка кнопки и вывод ошибок
             └── Login.vue
 ```
-
----
-
-## Навигация по документации (`/docs`)
-
-### Лабораторная работа №1 — Требования и заявка на тему
-- [Заявка на тему (`docs/project-proposal.md`)](docs/project-proposal.md)
-- [Требования к системе (`docs/lab-01-requirements.md`)](docs/lab-01-requirements.md)
-
-### Лабораторная работа №2 — Архитектура и модель данных
-- [Архитектура системы (`docs/architecture.md`)](docs/architecture.md)
-- [Модель данных и проверка 3НФ (`docs/data-model.md`)](docs/data-model.md)
-- [Контракт REST API (`docs/api-contract.md`)](docs/api-contract.md)
-- [Матрица требований (`docs/requirements-matrix.md`)](docs/requirements-matrix.md)
-- [Отчёт по лабораторной работе №2 (`docs/reports/lab-02.md`)](docs/reports/lab-02.md)
-
-### Лабораторная работа №3 — Vue 3: каркас и три экрана
-- [Отчёт по лабораторной работе №3 (`docs/reports/lab-03.md`)](docs/reports/lab-03.md)
-
-### Лабораторная работа №4 — Vue 3: компоненты и маршруты
-- [Отчёт по лабораторной работе №4 (`docs/reports/lab-04.md`)](docs/reports/lab-04.md)

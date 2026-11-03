@@ -1,9 +1,18 @@
+# Зависимости и сборки
 node_modules/
 dist/
 .DS_Store
-prepod_dir/
+
+# Переменные окружения (ЛР6: .env скрыт, но .env.example в Git)
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Локальные и служебные папки
+del_prepod/
 .vscode/
 .idea/
 *.log
-.env
-.env.local
