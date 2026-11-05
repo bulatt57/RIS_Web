@@ -11,7 +11,7 @@ frontend/.env
 frontend/.env.*
 !frontend/.env.example
 
-# Сборки и временные файлы Backend (.NET / C# — ЛР7)
+# Сборки и временные файлы Backend (.NET / C# — ЛР7–ЛР8)
 **/bin/
 **/obj/
 *.user
