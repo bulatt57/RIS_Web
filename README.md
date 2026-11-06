@@ -8,7 +8,27 @@
 
 ---
 
-## Запуск сервера Backend (ЛР8 — REST: создание, чтение, назначение и статус)
+## База данных PostgreSQL и SQL-скрипты (ЛР9)
+
+В папке `db/` расположены SQL-скрипты реляционной схемы в 3НФ (без хранения паролей и секретов в Git):
+- `db/schema.sql` — пересоздание учебных таблиц (`departments`, `users`, `assignments`), первичные и внешние ключи (`PK`, `FK`), ограничение `CHECK` на 4 статуса (`New`, `InProgress`, `Closed`, `Cancelled`) и индексы (`assignments_status_idx`, `assignments_department_id_idx`);
+- `db/seed.sql` — наполнение справочника подразделений ЕЦУиМС, пользователей и поручений во всех 4 статусах;
+- `db/queries.sql` — обязательные запросы с фильтрацией и сортировкой (`WHERE` + `ORDER BY`), соединением таблиц (`JOIN`) и группировкой (`GROUP BY` + `COUNT(*)`).
+
+### Команды запуска через `psql` (локально на Debian / Linux):
+
+```bash
+createdb course_assignments
+psql -d course_assignments -f db/schema.sql
+psql -d course_assignments -f db/seed.sql
+psql -d course_assignments -f db/queries.sql
+```
+
+*(Пароль пользователя БД вводится интерактивно или задаётся локально в окружении — в репозитории пароли не хранятся. Для повторного прогона достаточно заново выполнить `psql -d course_assignments -f db/schema.sql` и `seed.sql`, так как в начале `schema.sql` предусмотрен `DROP TABLE IF EXISTS ... CASCADE`).*
+
+---
+
+## Запуск сервера Backend (ЛР7–ЛР8 — ASP.NET Core Web API)
 
 Выполните из корня репозитория:
 
@@ -20,35 +40,20 @@ dotnet run
 
 *(Если `dotnet` установлен локально в `~/.dotnet`, используйте `~/.dotnet/dotnet restore` и `~/.dotnet/dotnet run`).*
 
-### Адреса и ограничения ЛР8 (обязательные сведения):
 - **Базовый адрес API:** `http://localhost:5000`
-- **Swagger UI:** `http://localhost:5000/swagger` (в среде `Development`)
-- **Проверка живости (`GET /health`):** `http://localhost:5000/health` (`200 OK`, `Healthy` — проверяет только живость процесса, а не создание записи)
+- **Swagger UI:** `http://localhost:5000/swagger`
+- **Проверка живости (`GET /health`):** `http://localhost:5000/health` (`200 OK`, `Healthy`)
 - **Сведения о сервисе (`GET /info`):** `http://localhost:5000/info`
 - **Маршруты главного объекта (`Assignments` / Поручения):**
-  - `POST /api/assignments` — создать поручение (`201 Created`, сервер сам назначает `id`, `number`, `status: "New"`, `assigneeUserId: null`; при ошибке проверки полей — `400 Bad Request`)
-  - `GET /api/assignments` — получить список поручений (`200 OK`, включая пустой массив `[]`)
-  - `GET /api/assignments/{id}` — получить одно поручение (`200 OK` или `404 Not Found`)
-  - `PATCH /api/assignments/{id}/assignee` — назначить исполнителя (`{ "assigneeUserId": 5 }` → `200 OK`, `400` или `404`)
-  - `PATCH /api/assignments/{id}/status` — изменить статус (`{ "status": "InProgress" }`, допустимые статусы: `New`, `InProgress`, `Closed`, `Cancelled` → `200 OK`, `400`, `404` или `409 Conflict` при переводе в `InProgress` без назначенного исполнителя)
-- **Важные ограничения текущего этапа (ЛР8):**
-  - данные поручений пока хранятся в оперативной памяти сервера (`AssignmentService`), после перезапуска процесса они пропадут;
-  - метод `DELETE` в курсе не используется (отмена поручения выполняется переводом в статус `Cancelled`);
-  - при неожиданном сбое (`500`) сервер пишет краткую строку в лог (`CreateAssignment failed; departmentId=...; error=...`), а клиенту возвращает безопасный `ProblemDetails` без `stack trace`.
-
----
-
-## Коллекция запросов Postman (ЛР8)
-
-Готовая коллекция с проверками `201`, `400`, `404`, `409` и обоих `PATCH` находится в репозитории:
-- `docs/api-collection/assignments.postman_collection.json`
-- `docs/api-collection/tickets.postman_collection.json`
+  - `POST /api/assignments` (`201 Created` / `400 Bad Request`)
+  - `GET /api/assignments` (`200 OK`, включая `[]`)
+  - `GET /api/assignments/{id}` (`200 OK` / `404 Not Found`)
+  - `PATCH /api/assignments/{id}/assignee` (`200 OK` / `400` / `404`)
+  - `PATCH /api/assignments/{id}/status` (`200 OK` / `400` / `404` / `409 Conflict` при переводе в `InProgress` без исполнителя)
 
 ---
 
 ## Запуск клиента Frontend (ЛР3–ЛР6 — Vue 3 + Vite)
-
-Выполните из корня репозитория в отдельном терминале:
 
 ```bash
 cd frontend
@@ -65,8 +70,12 @@ npm run dev
 
 ```text
 RIS_Web/
-├── README.md                                           ← запуск backend и frontend, маршруты и ограничения ЛР8
+├── README.md                                           ← запуск БД (ЛР9), backend (ЛР7–8) и frontend (ЛР3–6)
 ├── .gitignore                                          ← исключения Git (node_modules/, .env, **/bin/, **/obj/)
+├── db/
+│   ├── schema.sql                                      ← таблицы departments, users, assignments, PK, FK, CHECK, индексы (ЛР9)
+│   ├── seed.sql                                        ← начальные данные: 4 подразделения, 4 пользователя, 5 поручений во всех 4 статусах (ЛР9)
+│   └── queries.sql                                     ← обязательные запросы: фильтр/сортировка, JOIN, GROUP BY и тест CHECK (ЛР9)
 ├── docs/
 │   ├── project-proposal.md                             ← заявка на тему (ЛР1)
 │   ├── lab-01-requirements.md                          ← требования и критерии приёмки (ЛР1)
@@ -76,31 +85,10 @@ RIS_Web/
 │   ├── requirements-matrix.md                          ← матрица: критерий → поле → запрос (ЛР2)
 │   ├── api-collection/
 │   │   ├── assignments.postman_collection.json         ← коллекция Postman для проверки REST API (ЛР8)
-│   │   └── tickets.postman_collection.json             ← копия коллекции со стандартным именем из методички
+│   │   └── tickets.postman_collection.json
 │   └── reports/
-│       ├── lab-02.md .. lab-07.md                      ← отчёты по ЛР2–ЛР7
-│       └── lab-08.md                                   ← отчёт по ЛР8 (REST, коды 201/400/404/409 и лог ошибок)
+│       ├── lab-02.md .. lab-08.md                      ← отчёты по ЛР2–ЛР8
+│       └── lab-09.md                                   ← отчёт по ЛР9 (PostgreSQL и SQL)
 ├── frontend/                                           ← клиент Vue 3 + Vite
-└── backend/                                            ← сервер ASP.NET Core Web API (ЛР7–ЛР8)
-    ├── backend.csproj
-    ├── Program.cs
-    ├── appsettings.json
-    ├── appsettings.Development.json
-    ├── Properties/
-    │   └── launchSettings.json                         ← HTTP-порт 5000, среда Development
-    ├── Controllers/
-    │   ├── SystemController.cs                         ← служебные маршруты /health и /info (ЛР7)
-    │   └── AssignmentsController.cs                    ← REST-маршруты главного объекта (ЛР8)
-    ├── Dtos/
-    │   ├── CreateAssignmentRequest.cs                  ← входной DTO создания (title, departmentId/siteId, description)
-    │   ├── AssignAssigneeRequest.cs                    ← входной DTO назначения исполнителя (assigneeUserId)
-    │   ├── ChangeStatusRequest.cs                      ← входной DTO смены статуса (status)
-    │   └── AssignmentResponse.cs                       ← выходной DTO поручения
-    ├── Models/
-    │   └── Assignment.cs                               ← серверная модель поручения
-    ├── Services/
-    │   ├── IAssignmentService.cs                       ← интерфейс сервиса поручений и результаты операций
-    │   └── AssignmentService.cs                        ← хранение в памяти, счётчик и правила процесса
-    └── Data/
-        └── .gitkeep                                    ← заготовка под контекст БД для следующих ЛР
+└── backend/                                            ← сервер ASP.NET Core Web API
 ```
