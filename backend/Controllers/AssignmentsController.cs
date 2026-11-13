@@ -20,18 +20,12 @@ public class AssignmentsController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Получить список всех поручений (включая пустой массив [] со статусом 200).
-    /// </summary>
     [HttpGet]
     public ActionResult<IReadOnlyList<AssignmentResponse>> GetAll()
     {
         return Ok(_assignmentService.GetAll());
     }
 
-    /// <summary>
-    /// Получить одно поручение по id (200 или 404).
-    /// </summary>
     [HttpGet("{id:int}")]
     public ActionResult<AssignmentResponse> GetById(int id)
     {
@@ -49,9 +43,6 @@ public class AssignmentsController : ControllerBase
         return Ok(item);
     }
 
-    /// <summary>
-    /// Создать новое поручение (201 Created или 400 Bad Request).
-    /// </summary>
     [HttpPost]
     public ActionResult<AssignmentResponse> Create([FromBody] CreateAssignmentRequest? request)
     {
@@ -71,15 +62,11 @@ public class AssignmentsController : ControllerBase
                 });
             }
 
-            // Для проверки п. 5.3 методички (раскомментировать временно для скриншота лога 500, затем снова закомментировать):
-            // throw new InvalidOperationException("Simulated unexpected failure after validation");
-
             var created = result.Data!;
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (Exception ex)
         {
-            // Пункт 5.3: одна понятная строка в логе сервера и безопасный ProblemDetails клиенту без stack trace
             _logger.LogError(
                 "CreateAssignment failed; departmentId={DepartmentId}; error={ErrorType}",
                 departmentId,
@@ -92,9 +79,6 @@ public class AssignmentsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Отдельно назначить исполнителя поручения (200, 400 или 404).
-    /// </summary>
     [HttpPatch("{id:int}/assignee")]
     public ActionResult<AssignmentResponse> AssignAssignee(int id, [FromBody] AssignAssigneeRequest? request)
     {
@@ -102,9 +86,6 @@ public class AssignmentsController : ControllerBase
         return ToActionResult(result);
     }
 
-    /// <summary>
-    /// Отдельно изменить статус поручения (200, 400, 404 или 409 при отсутствии исполнителя для InProgress).
-    /// </summary>
     [HttpPatch("{id:int}/status")]
     public ActionResult<AssignmentResponse> ChangeStatus(int id, [FromBody] ChangeStatusRequest? request)
     {

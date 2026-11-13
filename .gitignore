@@ -11,7 +11,7 @@ frontend/.env
 frontend/.env.*
 !frontend/.env.example
 
-# Сборки и временные файлы Backend (.NET / C# — ЛР7–ЛР8)
+# Сборки и временные файлы Backend (.NET / C# — ЛР7–ЛР10)
 **/bin/
 **/obj/
 *.user
@@ -19,7 +19,11 @@ frontend/.env.*
 *.userosscache
 *.sln.docstates
 
-# Дампы БД с локальными настройками и секретами (ЛР9)
+# Локальные секреты и строки подключения с паролями (ЛР10)
+backend/appsettings.Local.json
+backend/.env
+
+# Дампы БД с локальными настройками и секретами (ЛР9–ЛР10)
 *.dump
 *.bak
 *.pgpass

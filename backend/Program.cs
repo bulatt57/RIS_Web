@@ -1,5 +1,7 @@
+using backend.Data;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +13,40 @@ builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Регистрация сервиса хранения в памяти через DI (Singleton, чтобы список сохранялся между запросами в рамках запуска)
-builder.Services.AddSingleton<IAssignmentService, AssignmentService>();
+// Строка подключения читается по ключу ConnectionStrings:Default из user-secrets или переменных окружения
+var connectionString = builder.Configuration.GetConnectionString("Default");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    connectionString = Environment.GetEnvironmentVariable("CONNECTIONSTRINGS__DEFAULT")
+        ?? "Host=localhost;Port=5432;Database=course_assignments;Username=postgres";
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// В ЛР10 сервис работает с AppDbContext (PostgreSQL) и регистрируется как Scoped
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 
 var app = builder.Build();
+
+// При старте проверяем/накатываем миграции и при пустых справочниках заполняем начальные данные
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        DbSeeder.SeedIfEmpty(db);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(
+            "Database migration/seed skipped or failed on startup; error={ErrorType}; message={Message}",
+            ex.GetType().Name,
+            ex.Message);
+    }
+}
 
 // Безопасный перехват неожиданных ошибок (500): лог без секретов на сервере, клиенту только безопасный ProblemDetails без stack trace
 app.Use(async (context, next) =>

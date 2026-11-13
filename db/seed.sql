@@ -1,8 +1,8 @@
--- Лабораторная работа №9: Начальные учебные данные (seed.sql)
+-- Лабораторная работа №9–10: Начальные учебные данные (seed.sql)
 -- Очистка таблиц перед повторной загрузкой с перезапуском счётчиков идентификаторов
 TRUNCATE TABLE assignments, users, departments RESTART IDENTITY CASCADE;
 
--- 1. Справочник подразделений ЕЦУиМС ПАО «Таттелеком» (4 строки, минимум по методичке — 2)
+-- 1. Справочник подразделений ЕЦУиМС ПАО «Таттелеком»
 INSERT INTO departments (id, code, name) VALUES
     (1, 'ACCESS', 'Сеть доступа'),
     (2, 'TRANSPORT', 'Транспортная сеть'),
@@ -11,12 +11,13 @@ INSERT INTO departments (id, code, name) VALUES
 
 SELECT setval(pg_get_serial_sequence('departments', 'id'), (SELECT MAX(id) FROM departments));
 
--- 2. Пользователи: руководители и инженеры (4 пользователя, минимум по методичке — 2)
+-- 2. Пользователи: руководители и инженеры
 INSERT INTO users (id, full_name, email, role) VALUES
     (1, 'Салихов Рустам Ильдарович', 'r.salikhov@tattelecom.local', 'Manager'),
     (2, 'Тухбатуллин Булат Айдарович', 'b.tukhbatullin@tattelecom.local', 'Engineer'),
     (3, 'Каримов Айрат Маратович', 'a.karimov@tattelecom.local', 'Engineer'),
-    (4, 'Зарипова Алия Фаритовна', 'a.zaripova@tattelecom.local', 'Dispatcher');
+    (4, 'Зарипова Алия Фаритовна', 'a.zaripova@tattelecom.local', 'Dispatcher'),
+    (5, 'Ибрагимов Тимур Рафаэлевич', 't.ibragimov@tattelecom.local', 'Engineer');
 
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users));
 

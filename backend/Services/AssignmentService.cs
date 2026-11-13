@@ -1,5 +1,7 @@
+using backend.Data;
 using backend.Dtos;
 using backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services;
 
@@ -13,62 +15,33 @@ public class AssignmentService : IAssignmentService
         "Cancelled"
     };
 
-    private readonly List<Assignment> _items = new();
-    private readonly object _sync = new();
-    private int _nextId = 1;
+    private readonly AppDbContext _db;
 
-    public AssignmentService()
+    public AssignmentService(AppDbContext db)
     {
-        // Стартовые записи в памяти: запись #1 намеренно в статусе New без исполнителя (для проверки 409 и двух PATCH)
-        SeedItem(
-            title: "Проверить оптическую линию на узле доступа",
-            departmentId: 1,
-            description: "Выполнить диагностику затухания сигнала после плановых работ и приложить сводку",
-            status: "New",
-            assigneeUserId: null);
-
-        SeedItem(
-            title: "Подготовить сводку по ночным инцидентам",
-            departmentId: 3,
-            description: "Собрать данные из системы мониторинга за смену и передать руководителю ЕЦУиМС",
-            status: "InProgress",
-            assigneeUserId: 3);
-    }
-
-    private void SeedItem(string title, int departmentId, string description, string status, int? assigneeUserId)
-    {
-        var id = _nextId++;
-        _items.Add(new Assignment
-        {
-            Id = id,
-            Number = $"ПОР-2026-{id:D4}",
-            Title = title,
-            DepartmentId = departmentId,
-            Description = description,
-            Status = status,
-            AssigneeUserId = assigneeUserId
-        });
+        _db = db;
     }
 
     public string GetApplicationName() => "TaskControl (ПАО «Таттелеком» — ЕЦУиМС)";
 
-    public string GetLabStageNote() => "ЛР8: REST главного объекта (создание, чтение, назначение и статус в памяти)";
+    public string GetLabStageNote() => "ЛР10: EF Core — сервер читает и пишет в базу PostgreSQL";
 
     public IReadOnlyList<AssignmentResponse> GetAll()
     {
-        lock (_sync)
-        {
-            return _items.Select(MapToResponse).ToList();
-        }
+        return _db.Assignments
+            .AsNoTracking()
+            .OrderBy(a => a.Id)
+            .Select(a => MapToResponse(a))
+            .ToList();
     }
 
     public AssignmentResponse? GetById(int id)
     {
-        lock (_sync)
-        {
-            var item = _items.FirstOrDefault(x => x.Id == id);
-            return item is null ? null : MapToResponse(item);
-        }
+        var item = _db.Assignments
+            .AsNoTracking()
+            .FirstOrDefault(a => a.Id == id);
+
+        return item is null ? null : MapToResponse(item);
     }
 
     public ServiceResult<AssignmentResponse> Create(CreateAssignmentRequest? request)
@@ -81,6 +54,7 @@ public class AssignmentService : IAssignmentService
         var cleanTitle = (request.Title ?? string.Empty).Trim();
         var cleanDescription = (request.Description ?? string.Empty).Trim();
         var departmentId = request.ResolvedDepartmentId;
+        var createdByUserId = request.CreatedByUserId is > 0 ? request.CreatedByUserId.Value : 1;
 
         var errors = new Dictionary<string, string[]>();
 
@@ -93,10 +67,19 @@ public class AssignmentService : IAssignmentService
         {
             errors["departmentId"] = new[] { "Поле departmentId (siteId) должно быть целым числом больше нуля." };
         }
+        else if (!_db.Departments.Any(d => d.Id == departmentId))
+        {
+            errors["departmentId"] = new[] { $"Подразделение с id={departmentId} не существует в справочнике departments." };
+        }
 
         if (cleanDescription.Length < 10 || cleanDescription.Length > 500)
         {
             errors["description"] = new[] { "Поле description должно содержать от 10 до 500 символов." };
+        }
+
+        if (!_db.Users.Any(u => u.Id == createdByUserId))
+        {
+            errors["createdByUserId"] = new[] { $"Пользователь-создатель с id={createdByUserId} не найден." };
         }
 
         if (errors.Count > 0)
@@ -104,23 +87,26 @@ public class AssignmentService : IAssignmentService
             return ServiceResult<AssignmentResponse>.Validation("Проверьте поля запроса.", errors);
         }
 
-        lock (_sync)
+        var created = new Assignment
         {
-            var id = _nextId++;
-            var created = new Assignment
-            {
-                Id = id,
-                Number = $"ПОР-2026-{id:D4}",
-                Title = cleanTitle,
-                DepartmentId = departmentId,
-                Description = cleanDescription,
-                Status = "New",
-                AssigneeUserId = null
-            };
+            Number = $"TMP-{Guid.NewGuid():N}",
+            Title = cleanTitle,
+            DepartmentId = departmentId,
+            Description = cleanDescription,
+            Status = "New",
+            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedByUserId = createdByUserId,
+            AssigneeUserId = null
+        };
 
-            _items.Add(created);
-            return ServiceResult<AssignmentResponse>.Success(MapToResponse(created));
-        }
+        _db.Assignments.Add(created);
+        _db.SaveChanges();
+
+        // Формируем постоянный регистрационный номер по сгенерированному БД идентификатору Id
+        created.Number = $"ПОР-2026-{created.Id:D4}";
+        _db.SaveChanges();
+
+        return ServiceResult<AssignmentResponse>.Success(MapToResponse(created));
     }
 
     public ServiceResult<AssignmentResponse> AssignUser(int id, AssignAssigneeRequest? request)
@@ -135,17 +121,26 @@ public class AssignmentService : IAssignmentService
                 });
         }
 
-        lock (_sync)
+        var item = _db.Assignments.FirstOrDefault(a => a.Id == id);
+        if (item is null)
         {
-            var item = _items.FirstOrDefault(x => x.Id == id);
-            if (item is null)
-            {
-                return ServiceResult<AssignmentResponse>.NotFound($"Поручение с id={id} не найдено.");
-            }
-
-            item.AssigneeUserId = request.AssigneeUserId;
-            return ServiceResult<AssignmentResponse>.Success(MapToResponse(item));
+            return ServiceResult<AssignmentResponse>.NotFound($"Поручение с id={id} не найдено.");
         }
+
+        if (!_db.Users.Any(u => u.Id == request.AssigneeUserId))
+        {
+            return ServiceResult<AssignmentResponse>.Validation(
+                $"Пользователь с id={request.AssigneeUserId} не существует в таблице users.",
+                new Dictionary<string, string[]>
+                {
+                    ["assigneeUserId"] = new[] { $"Пользователь с id={request.AssigneeUserId} не найден." }
+                });
+        }
+
+        item.AssigneeUserId = request.AssigneeUserId;
+        _db.SaveChanges();
+
+        return ServiceResult<AssignmentResponse>.Success(MapToResponse(item));
     }
 
     public ServiceResult<AssignmentResponse> ChangeStatus(int id, ChangeStatusRequest? request)
@@ -162,24 +157,23 @@ public class AssignmentService : IAssignmentService
                 });
         }
 
-        lock (_sync)
+        var item = _db.Assignments.FirstOrDefault(a => a.Id == id);
+        if (item is null)
         {
-            var item = _items.FirstOrDefault(x => x.Id == id);
-            if (item is null)
-            {
-                return ServiceResult<AssignmentResponse>.NotFound($"Поручение с id={id} не найдено.");
-            }
-
-            // Правило процесса (п. 3.2 и Шаг G): нельзя переводить запись в InProgress, пока исполнитель не назначен -> 409 Conflict
-            if (newStatus == "InProgress" && item.AssigneeUserId is null)
-            {
-                return ServiceResult<AssignmentResponse>.Conflict(
-                    "Нельзя перевести поручение в статус InProgress, пока не назначен исполнитель (assigneeUserId).");
-            }
-
-            item.Status = newStatus;
-            return ServiceResult<AssignmentResponse>.Success(MapToResponse(item));
+            return ServiceResult<AssignmentResponse>.NotFound($"Поручение с id={id} не найдено.");
         }
+
+        // Правило процесса: нельзя переводить запись в InProgress, пока исполнитель не назначен -> 409 Conflict
+        if (newStatus == "InProgress" && item.AssigneeUserId is null)
+        {
+            return ServiceResult<AssignmentResponse>.Conflict(
+                "Нельзя перевести поручение в статус InProgress, пока не назначен исполнитель (assigneeUserId).");
+        }
+
+        item.Status = newStatus;
+        _db.SaveChanges();
+
+        return ServiceResult<AssignmentResponse>.Success(MapToResponse(item));
     }
 
     private static AssignmentResponse MapToResponse(Assignment item) => new()
@@ -191,6 +185,8 @@ public class AssignmentService : IAssignmentService
         SiteId = item.DepartmentId,
         Description = item.Description,
         Status = item.Status,
+        CreatedAt = item.CreatedAt,
+        CreatedByUserId = item.CreatedByUserId,
         AssigneeUserId = item.AssigneeUserId
     };
 }
